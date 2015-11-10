@@ -1,0 +1,36 @@
+** Qmake mode
+
+   A major mode for qmake file focused on indentation in line-continuation and
+   block.
+
+   - Keywords and font-lock source from
+     - https://qmake-mode.googlecode.com/hg/qmake.el
+   - ERT from julia-mode.el
+     - https://github.com/JuliaLang/julia
+
+   For example,
+   #+BEGIN_EXAMPLE
+   SOURCES += \
+       foo.cpp \
+       bar.cpp
+
+   unix {
+       SOURCES += unix.cpp
+   }
+   #+END_EXAMPLE
+
+** Tests
+
+   Support ERT(Emacs Lisp regression testing tool)
+
+   #+BEGIN_EXAMPLE
+   $ emacs -batch -l ert -l qmake-mode.el -f ert-run-tests-batch-and-exit
+   #+END_EXAMPLE
+
+   or
+
+   ~M-x~ /ert/ <Enter> /t/ <Enter>
+
+** License
+
+   GNU General Public License Version 3
