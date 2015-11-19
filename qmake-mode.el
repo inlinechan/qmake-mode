@@ -269,50 +269,7 @@
   (let ((result))
     (save-excursion
       (end-of-line)
-      (cond
-       ((looking-back "^.*[ \t]*\\\\$")
-        (progn
-          (goto-char (match-end 0))
-          (let ((prev-cont
-                 (save-excursion
-                   (and (= (forward-line -1) 0)
-                        (progn
-                          (end-of-line)
-                          (looking-back "^.*[ \t]*\\\\$"))))))
-            (if prev-cont
-                (add-to-list 'result `(line-cont . ,(1- (point))))
-              (add-to-list 'result `(line-cont-begin . ,(1- (point))))))
-          ))
-       ((looking-back "^[ \t]*}.*[ \t]*{$")
-        (progn
-          (goto-char (match-end 0))
-          (add-to-list 'result `(brace-close-open . ,(1- (point))))
-          ))
-       ((looking-back "^.*[ \t]*{$")
-        (progn
-          (goto-char (match-end 0))
-          ;; (message "found '{' at %s" (1- (point)))
-          (add-to-list 'result `(brace-open . ,(1- (point))))
-          ))
-       ((looking-back "^[ \t]*}$")
-        (progn
-          (goto-char (match-end 0))
-          ;; (message "found '}' at %s" (1- (point)))
-          (add-to-list 'result `(brace-close . ,(1- (point))))
-          ))
-       (t
-        (let ((orig-point (point))
-              (prev-line-cont
-               (save-excursion
-                 (and (= 0 (forward-line -1))
-                      (progn
-                        (end-of-line)
-                        (looking-back "^.*[ \t]*\\\\$"))))))
-          (if prev-line-cont
-              (add-to-list 'result `(line-cont-end . ,(1- orig-point)))
-            (add-to-list 'result `(default . ,0)))))
-       )                              ;cond
-      )
+      (setq result (qmake-parse-line t)))
     (when (listp result)
       (car (car result))))
   )
@@ -322,55 +279,13 @@
   (interactive)
   (let ((done)
         (line (save-excursion (forward-line -1)))
-        (result nil))
+        (result))
     (save-excursion
       (while (and (not done) (= line 0))
         (setq line (forward-line -1))
         (end-of-line)
-        (cond
-         ((looking-back "^.*[ \t]*\\\\$")
-          (progn
-            (goto-char (match-end 0))
-            (let ((prev-cont
-                   (save-excursion
-                     (and (= (forward-line -1) 0)
-                          (progn
-                            (end-of-line)
-                            (looking-back "^.*[ \t]*\\\\$"))))))
-              (if prev-cont
-                  (add-to-list 'result `(line-cont . ,(1- (point))))
-                (add-to-list 'result `(line-cont-begin . ,(1- (point))))))
-            ))
-         ((looking-back "^[ \t]*}.*[ \t]*{$")
-          (progn
-            (goto-char (match-end 0))
-            (add-to-list 'result `(brace-close-open . ,(1- (point))))
-            ))
-         ((looking-back "^.*[ \t]*{$")
-          (progn
-            (goto-char (match-end 0))
-            ;; (message "found '{' at %s" (1- (point)))
-            (add-to-list 'result `(brace-open . ,(1- (point))))
-            ))
-         ((looking-back "^[ \t]*}$")
-          (progn
-            (goto-char (match-end 0))
-            ;; (message "found '}' at %s" (1- (point)))
-            (add-to-list 'result `(brace-close . ,(1- (point))))
-            ))
-         (t
-          (let ((orig-point (point))
-                (prev-line-cont
-                 (save-excursion
-                   (and (= 0 (forward-line -1))
-                        (progn
-                          (end-of-line)
-                          (looking-back "^.*[ \t]*\\\\$"))))))
-            (when prev-line-cont
-              (add-to-list 'result `(line-cont-end . ,(1- orig-point))))))
-         )                              ;cond
-        ))
-    (reverse result)))
+        (setq result (append result (qmake-parse-line nil)))))
+    result))
 
 (defun qmake-indent-line ()
   "Indent line when it's in `qmake-mode'."
@@ -448,6 +363,53 @@
               '(qmake-font-lock-keywords))
   (setq-local indent-line-function 'qmake-indent-line)
   (run-hooks 'qmake-mode-hook))
+
+(defun qmake-parse-line (add-default)
+  (let ((result))
+    (cond
+     ((looking-back "^.*[ \t]*\\\\$")
+      (progn
+        (goto-char (match-end 0))
+        (let ((prev-cont
+               (save-excursion
+                 (and (= (forward-line -1) 0)
+                      (progn
+                        (end-of-line)
+                        (looking-back "^.*[ \t]*\\\\$"))))))
+          (if prev-cont
+              (add-to-list 'result `(line-cont . ,(1- (point))))
+            (add-to-list 'result `(line-cont-begin . ,(1- (point))))))
+        ))
+     ((looking-back "^[ \t]*}.*[ \t]*{$")
+      (progn
+        (goto-char (match-end 0))
+        (add-to-list 'result `(brace-close-open . ,(1- (point))))
+        ))
+     ((looking-back "^.*[ \t]*{$")
+      (progn
+        (goto-char (match-end 0))
+        (add-to-list 'result `(brace-open . ,(1- (point))))
+        ))
+     ((looking-back "^[ \t]*}$")
+      (progn
+        (goto-char (match-end 0))
+        (add-to-list 'result `(brace-close . ,(1- (point))))
+        ))
+     (t
+      (let ((orig-point (point))
+            (prev-line-cont
+             (save-excursion
+               (and (= 0 (forward-line -1))
+                    (progn
+                      (end-of-line)
+                      (looking-back "^.*[ \t]*\\\\$"))))))
+        (if prev-line-cont
+            (add-to-list 'result `(line-cont-end . ,(1- orig-point)))
+          (when add-default
+            (add-to-list 'result `(default . ,0))))))
+     )                              ;cond
+    result)
+  )
 
 (add-to-list 'auto-mode-alist '("\\.pr\\(i\\|o\\|f\\)\\'" . qmake-mode))
 
