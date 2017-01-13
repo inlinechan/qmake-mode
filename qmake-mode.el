@@ -367,7 +367,7 @@
 (defun qmake-parse-line (add-default)
   (let ((result))
     (cond
-     ((looking-back "^.*[ \t]*\\\\$")
+     ((looking-back "^.*[ \t]*\\\\$" (line-beginning-position))
       (progn
         (goto-char (match-end 0))
         (let ((prev-cont
@@ -375,26 +375,23 @@
                  (and (= (forward-line -1) 0)
                       (progn
                         (end-of-line)
-                        (looking-back "^.*[ \t]*\\\\$"))))))
+                        (looking-back "^.*[ \t]*\\\\$"
+                                      (line-beginning-position)))))))
           (if prev-cont
               (add-to-list 'result `(line-cont . ,(1- (point))))
-            (add-to-list 'result `(line-cont-begin . ,(1- (point))))))
-        ))
-     ((looking-back "^[ \t]*}.*[ \t]*{$")
+            (add-to-list 'result `(line-cont-begin . ,(1- (point))))))))
+     ((looking-back "^[ \t]*}.*[ \t]*{$" (line-beginning-position))
       (progn
         (goto-char (match-end 0))
-        (add-to-list 'result `(brace-close-open . ,(1- (point))))
-        ))
-     ((looking-back "^.*[ \t]*{$")
+        (add-to-list 'result `(brace-close-open . ,(1- (point))))))
+     ((looking-back "^.*[ \t]*{$" (line-beginning-position))
       (progn
         (goto-char (match-end 0))
-        (add-to-list 'result `(brace-open . ,(1- (point))))
-        ))
-     ((looking-back "^[ \t]*}$")
+        (add-to-list 'result `(brace-open . ,(1- (point))))))
+     ((looking-back "^[ \t]*}$" (line-beginning-position))
       (progn
         (goto-char (match-end 0))
-        (add-to-list 'result `(brace-close . ,(1- (point))))
-        ))
+        (add-to-list 'result `(brace-close . ,(1- (point))))))
      (t
       (let ((orig-point (point))
             (prev-line-cont
@@ -402,14 +399,14 @@
                (and (= 0 (forward-line -1))
                     (progn
                       (end-of-line)
-                      (looking-back "^.*[ \t]*\\\\$"))))))
+                      (looking-back "^.*[ \t]*\\\\$"
+                                    (line-beginning-position)))))))
         (if prev-line-cont
             (add-to-list 'result `(line-cont-end . ,(1- orig-point)))
           (when add-default
             (add-to-list 'result `(default . ,0))))))
      )                              ;cond
-    result)
-  )
+    result))
 
 (add-to-list 'auto-mode-alist '("\\.pr\\(i\\|o\\|f\\)\\'" . qmake-mode))
 
